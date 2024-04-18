@@ -11,6 +11,9 @@ void print_usage(){
 void process_input(int argc, char *argv[], char **input_filename, char **output_filename) {
     int opt;
 
+    // Inicjalizacja output_filename na NULL
+    *output_filename = NULL;
+
     while ((opt = getopt(argc, argv, "f:o:h")) != -1) {
         switch (opt) {
             case 'f':
@@ -30,7 +33,31 @@ void process_input(int argc, char *argv[], char **input_filename, char **output_
 
     if (*input_filename == NULL){
         print_usage();
-        exit(2); // B��d 2. Brak mo�liwo�ci wczytania pliku
+        exit(2); // blad 2. Brak mozliwosci wczytania pliku
+    }
+
+    if (!file_exists(*input_filename)) {
+        fprintf(stderr, "Error. Unable to open input file - %s\n", *input_filename);
+        exit(2); // blad 2. Brak mozliwosci wczytania pliku
+    }
+
+    if(is_binary_file_v2(*input_filename)){
+        if(!is_valid_binary_maze_format_v2(*input_filename)){
+            fprintf(stderr, "Error. Invalid maze format - %s\n", *input_filename);
+            exit(5); // blad 5. Nieprawidlowy format labiryntu
+        }
+    }
+    else
+    {
+        if(!is_valid_input_file(*input_filename)){
+            fprintf(stderr, "Error. Invalid input file format - %s\n", *input_filename);
+            exit(4); // blad 4. Nieprawidlowy format pliku
+        }  
+
+        if(!is_valid_maze_format_v2(*input_filename)){
+            fprintf(stderr, "Error. Invalid maze format - %s\n", *input_filename);
+            exit(5); // blad 5. Nieprawidlowy format labiryntu
+        }
     }
 }
 
@@ -100,15 +127,38 @@ bool is_valid_maze_format(const char *filename, int *start_x, int *start_y, int 
             }
         }
         i++;
-        fclose(file);
 
         // Проверка на наличие ровно одной точки входа и одной точки выхода
         if (entry_count != 1 || exit_count != 1) {
             fprintf(stderr, "Error. Incorrect number of entry (%d) or exit (%d) points in input file - %s\n", entry_count, exit_count, filename);
             return false;
         }
-
-    return true;
-    
     }
+    fclose(file);
+    return true;
+}
+
+bool is_binary_file(const char *filename) {
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        fprintf(stderr, "Error. Unable to open file - %s\n", filename);
+        return false;
+    }
+
+    bool binary = false;
+    unsigned char buffer[1024];  // Буфер для чтения данных из файла
+    size_t bytesRead;
+
+    while ((bytesRead = fread(buffer, 1, sizeof(buffer), file)) > 0) {
+        for (size_t i = 0; i < bytesRead; i++) {
+            if (buffer[i] < 0x07 || buffer[i] > 0x7E) {
+                binary = true;
+                break;
+            }
+        }
+        if (binary) break;
+    }
+
+    fclose(file);
+    return binary;
 }
