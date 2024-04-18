@@ -45,7 +45,7 @@ bool file_exists(const char *filename){
 }
 
 // Funkcja do testowania poprawno?ci formatu labiryntu
-bool is_valid_maze_format(const char *filename) {
+bool is_valid_maze_format(const char *filename, int *start_x, int *start_y, int *exit_x, int *exit_y) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         fprintf(stderr, "Error. Unable to open input file - %s\n", filename);
@@ -60,7 +60,8 @@ bool is_valid_maze_format(const char *filename) {
 
     //szeroko?? labiryntu (liczba kolumn)
     int maze_width = -1; // -1 tzn ?e jeszcze nie sprawdzono szeroko?ci
-
+    
+    int i = 0;
     while (fgets(line, sizeof(line), file)) {
         int line_length = strlen(line);
         //usun?? znak nowej linii, je?li istnieje
@@ -79,8 +80,8 @@ bool is_valid_maze_format(const char *filename) {
         }
 
         // czy linia sk?ada si? tylko z dozwolonych znak�w
-        for (int i = 0; i < line_length; i++) {
-            char c = line[i];
+        for (int j = 0; j < line_length; j++) {
+            char c = line[j];
             // Проверка допустимых символов
             if (c != ' ' && c != 'P' && c != 'K' && c != 'X') {
                 fprintf(stderr, "Error. Invalid character '%c' in input file - %s\n", c, filename);
@@ -90,11 +91,15 @@ bool is_valid_maze_format(const char *filename) {
             // Подсчет точек входа и выхода
             if (c == 'P') {
                 entry_count++;
+                *start_x = j;
+                *start_y = i;
             } else if (c == 'K') {
                 exit_count++;
+                *exit_x = j;
+                *exit_y = i;
             }
         }
-
+        i++;
         fclose(file);
 
         // Проверка на наличие ровно одной точки входа и одной точки выхода

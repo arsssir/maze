@@ -16,6 +16,6 @@ void process_input(int argc, char *argv[], char **input_filename, char **output_
 
 bool file_exists(const char *filename);
 
-bool is_valid_maze_format(const char *filename); 
+bool is_valid_maze_format(const char *filename, int *start_x, int *start_y, int *exit_x, int *exit_y);
 
 #endif
