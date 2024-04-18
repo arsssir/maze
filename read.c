@@ -1,6 +1,6 @@
 #include "read.h"
 
-#define MAX_SIZE 2050
+#define MAX_SIZE 1030
 
 Maze read_maze_from_file(const char* filename) {
     FILE* file = fopen(filename, "r");

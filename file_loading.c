@@ -3,7 +3,7 @@
 
 // f-cja do wy�wietlania info o u�yciu programy
 void print_usage(){
-    printf("Usage of the programme - program_name -f [in_filename.txt] -b [in_filename.bin] -o [out_filename] [-h]\n");
+    printf("Użycie programu: nazwa_programu -f [nazwa_pliku.txt] -b [nazwa_pliku.bin] -o [nazwa_pliku_wyjściowego] [-h]\n");
 
 }
 

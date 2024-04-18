@@ -1,13 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-#define MAX_SIZE 2050
-
 #include "file_loading.h" 
 #include "bfs.h"
 #include "read.h"
 #include "wyjscie.h"
-
 
 int8_t** allocate_2D_array_int8(uint16_t rows, uint16_t cols) {
     int8_t** array = malloc(rows * sizeof(int8_t*));
@@ -21,7 +17,10 @@ int main(int argc, char *argv[]) {
     char *input_filename_txt = NULL;
     char *input_filename_bin = NULL;
     char *output_filename = NULL;
+    //FILE *output_file = fopen("maze.txt", "w");
+    //FILE *output_f = fopen("da.txt", "w");
 
+    
     int output_type = 0;
     process_input(argc, argv, &input_filename_bin, &input_filename_txt, &output_filename);
     
@@ -34,40 +33,48 @@ int main(int argc, char *argv[]) {
         printf("Enter output type (1 for text file, 2 for binary file, 3 for maze in bin file): ");
         scanf("%d", &output_type);
     }
-    
-    Maze maze;
 
     if (input_filename_txt && input_filename_bin) {
-        printf("Открыты два файла.\n");
+        printf("Otwarte dwa pliki. Proszę otworzyć tylko jeden.\n");
         exit(EXIT_FAILURE);
-    } else if (input_filename_txt) {
+    }
+
+    Maze maze;
+    if (input_filename_txt) {
         maze = read_maze_from_file(input_filename_txt);
     } else if (input_filename_bin) {
         maze = read_maze_from_binary_file(input_filename_bin);
     } else {
-        printf("Не указан файл лабиринта.\n");
+        fprintf(stderr, "Nie podano pliku labiryntu.\n");
         exit(EXIT_FAILURE);
-}
+    }
 
     int8_t **predecessors = allocate_2D_array_int8(maze.height, maze.width);
     if (!predecessors) {
-        fprintf(stderr, "Failed to allocate memory for predecessors.\n");
+        fprintf(stderr, "Nie udało się zaalokować pamięci dla poprzedników.\n");
         return EXIT_FAILURE;
     }
 
-    printf("Maze dimensions: %dx%d\n", maze.height, maze.width);
-    printf("Start position: (%d, %d)\n", maze.start.x, maze.start.y);
-    printf("finish position: (%d, %d)\n", maze.finish.x, maze.finish.y);
+    printf("Wymiary labiryntu: %dx%d\n", maze.height, maze.width);
+    printf("Pozycja startowa: (%c)\n", maze.data[maze.start.x][maze.start.y]);
+    printf("Pozycja końcowa: (%c)\n", maze.data[maze.finish.x][maze.finish.y]);
+
+    bfs(maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, maze.data, maze.height, maze.width, predecessors);
     
+    /*for (uint16_t i = 0; i < maze.height; i++) {
+        for (uint16_t j = 0; j < maze.width; j++) {
+            fprintf(output_f, "%c ", maze.data[i][j]);
+        }
+        fprintf(output_f, "\n");
+    }
+
     printf("maze:\n");
     for (uint16_t i = 0; i < maze.height; i++) {
         for (uint16_t j = 0; j < maze.width; j++) {
-            printf("%c ", maze.data[i][j]);
+            fprintf(output_file, "%d ", predecessors[i][j]);
         }
-        printf("\n");
-    }
-
-    bfs(maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, maze.data, maze.height, maze.width, predecessors);
+        fprintf(output_file, "\n");
+    }*/
     
     char long_filename[260];
     if (output_type == 1) {
@@ -83,11 +90,12 @@ int main(int argc, char *argv[]) {
         // Вывод в консоль
         print_path(maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, predecessors);
     }
-    // Освобождение памяти
+
     for (int i = 0; i < maze.height; i++) {
         free(maze.data[i]);
     }
     free(maze.data);
+    free(predecessors);
 
     return EXIT_SUCCESS;
 }

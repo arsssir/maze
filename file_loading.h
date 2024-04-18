@@ -1,7 +1,7 @@
 #ifndef FILE_LOADING_H
 #define FILE_LOADING_H
 
-#define MAX_SIZE 2050
+#define MAX_SIZE 1030
 
 #include <stdbool.h> //true and false
 #include <stdio.h>

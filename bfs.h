@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#define MAX_SIZE 1030
 
 typedef struct {
     uint16_t x, y;      // координаты узла

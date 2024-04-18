@@ -37,19 +37,20 @@ const char* get_turn_name(int8_t last_dir, int8_t new_dir) {
 }
 
 void bfs(uint16_t start_x, uint16_t start_y, uint16_t exit_x, uint16_t exit_y, char **maze, uint16_t rows, uint16_t cols, int8_t **predecessors){
-    Node queue[rows * cols];
+    Node queue[rows*cols];
+    
     uint16_t front = 0, rear = 0;
     bool distances[rows][cols];
 
-    for (int8_t i = 0; i < rows; i++) {
-        for (int8_t j = 0; j < cols; j++) {
+    for (uint16_t i = 0; i < rows; i++) {
+        for (uint16_t j = 0; j < cols; j++) {
             distances[i][j] = 0;
             predecessors[i][j] = -1;
         }
     }
 
     distances[start_x][start_y] = 1;
-    enqueue(queue, &rear, (Node){start_x, start_y, -1});  // Начальное направление не установлено
+    enqueue(queue, &rear, (Node){start_x, start_y, -1}); // Начальное направление не установлено
 
     bool flag = 0;
     while (front < rear && flag == 0) {
