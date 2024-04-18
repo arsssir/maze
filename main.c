@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #define MAX_SIZE 1024
 #include "file_loading.h" 
+#include <stdbool.h>
 
 int main(int argc, char *argv[]) {
     char *input_filename = NULL;
