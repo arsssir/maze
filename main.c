@@ -1,131 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #define MAX_SIZE 2050
-//#include "file_loading.h" 
-#include <stdbool.h>
-#include <stdbool.h> //true and false
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h> //dla getopta
-#include <stdint.h>
+
+#include "file_loading.h" 
 #include "bfs.h"
+#include "read.h"
+#include "wyjscie.h"
 
-typedef struct {
-    uint16_t x, y;
-} Position;
-
-typedef struct {
-    char** data;
-    uint16_t width;
-    uint16_t height;
-    Position start;
-    Position finish;
-} Maze;
-
-void process_input(int argc, char *argv[], char **input_filename, char **output_filename) {
-    int opt;
-
-    while ((opt = getopt(argc, argv, "f:o:h")) != -1) {
-        switch (opt) {
-            case 'f':
-                *input_filename = optarg;
-                break;
-            case 'o':
-                *output_filename = optarg;
-                break;
-            case 'h':
-                //print_usage();
-                exit(EXIT_SUCCESS);
-            default:
-                //print_usage();
-                exit(EXIT_FAILURE);
-        }
-    }
-}
-
-Maze read_maze_from_file(const char* filename) {
-    FILE* file = fopen(filename, "r");
-    if (!file) {
-        fprintf(stderr, "Failed to open file: %s\n", filename);
-        exit(EXIT_FAILURE);
-    }
-
-    char line[MAX_SIZE];
-    char** mazeData = NULL;
-    uint16_t linesCount = 0;
-    uint16_t maxWidth = 0;
-    uint16_t capacity = 10;  // Начальная емкость массива
-
-    mazeData = malloc(sizeof(char*) * capacity);
-    if (!mazeData) { // Проверка на успешное выделение памяти
-        fprintf(stderr, "Memory allocation failed\n");
-        fclose(file);
-        exit(EXIT_FAILURE);
-    }
-
-    while (fgets(line, sizeof(line), file)) {
-        uint16_t len = strlen(line);
-        if (line[len - 1] == '\n') {
-            line[len - 1] = '\0'; // Удаляем символ новой строки
-            len--;
-        }
-        if (len > maxWidth) maxWidth = len;
-
-        if (linesCount >= capacity) {
-            capacity *= 2; // Удваиваем размер массива
-            char** temp = realloc(mazeData, sizeof(char*) * capacity);
-            if (!temp) {
-                fprintf(stderr, "Memory reallocation failed\n");
-                // Освобождаем выделенную память перед выходом
-                for (uint16_t i = 0; i < linesCount; i++) free(mazeData[i]);
-                free(mazeData);
-                fclose(file);
-                exit(EXIT_FAILURE);
-            }
-            mazeData = temp;
-        }
-
-        mazeData[linesCount] = strdup(line); // Дублируем строку
-        if (!mazeData[linesCount]) { // Проверка на успешное выделение памяти
-            fprintf(stderr, "Memory allocation for line failed\n");
-            // Освобождаем выделенную память перед выходом
-            for (uint16_t i = 0; i < linesCount; i++) free(mazeData[i]);
-            free(mazeData);
-            fclose(file);
-            exit(EXIT_FAILURE);
-        }
-        linesCount++;
-    }
-
-    fclose(file); // Закрываем файл
-
-    Position start = {0, 0}, finish = {0, 0};
-    for (uint16_t i = 0; i < linesCount; i++) {
-        for (uint16_t j = 0; mazeData[i][j] != '\0'; j++) {
-            if (mazeData[i][j] == 'K') {
-                start.x = i;
-                start.y = j;
-            } else if (mazeData[i][j] == 'P') {
-                finish.x = i;
-                finish.y = j;
-            }
-        }
-    }
-
-    // Уменьшаем размер массива данных до фактически используемого
-    char** temp = realloc(mazeData, sizeof(char*) * linesCount);
-    if (!temp) {
-        fprintf(stderr, "Memory reallocation failed\n");
-        for (uint16_t i = 0; i < linesCount; i++) free(mazeData[i]);
-        free(mazeData);
-        exit(EXIT_FAILURE);
-    }
-    mazeData = temp;
-
-    Maze maze = {mazeData, maxWidth, linesCount, start, finish};
-    return maze;
-}
 
 int8_t** allocate_2D_array_int8(uint16_t rows, uint16_t cols) {
     int8_t** array = malloc(rows * sizeof(int8_t*));
@@ -136,59 +18,76 @@ int8_t** allocate_2D_array_int8(uint16_t rows, uint16_t cols) {
 }
 
 int main(int argc, char *argv[]) {
-    char *input_filename = NULL;
+    char *input_filename_txt = NULL;
+    char *input_filename_bin = NULL;
     char *output_filename = NULL;
-    process_input(argc, argv, &input_filename, &output_filename);
-    Maze maze = read_maze_from_file(input_filename);
+
+    int output_type = 0;
+    process_input(argc, argv, &input_filename_bin, &input_filename_txt, &output_filename);
+    
+    char filename[256];
+
+    if (!output_filename) {
+        output_type = 0;
+    } else {
+        strcpy(filename, output_filename);
+        printf("Enter output type (1 for text file, 2 for binary file, 3 for maze in bin file): ");
+        scanf("%d", &output_type);
+    }
+    
+    Maze maze;
+
+    if (input_filename_txt && input_filename_bin) {
+        printf("Открыты два файла.\n");
+        exit(EXIT_FAILURE);
+    } else if (input_filename_txt) {
+        maze = read_maze_from_file(input_filename_txt);
+    } else if (input_filename_bin) {
+        maze = read_maze_from_binary_file(input_filename_bin);
+    } else {
+        printf("Не указан файл лабиринта.\n");
+        exit(EXIT_FAILURE);
+}
+
     int8_t **predecessors = allocate_2D_array_int8(maze.height, maze.width);
     if (!predecessors) {
         fprintf(stderr, "Failed to allocate memory for predecessors.\n");
         return EXIT_FAILURE;
     }
-    
-    /*printf("Distance Table:\n");
-    for (int8_t i = 0; i < maze.height; i++) {
-        for (int8_t j = 0; j < maze.width; j++) {
-            printf("%3d ", predecessors[i][j]);
-        }
-        printf("\n");
-    }*/
 
     printf("Maze dimensions: %dx%d\n", maze.height, maze.width);
     printf("Start position: (%d, %d)\n", maze.start.x, maze.start.y);
     printf("finish position: (%d, %d)\n", maze.finish.x, maze.finish.y);
     
-    /*printf("maze:\n");
-    for (int8_t i = 0; i < maze.height; i++) {
-        for (int8_t j = 0; j < maze.width; j++) {
+    printf("maze:\n");
+    for (uint16_t i = 0; i < maze.height; i++) {
+        for (uint16_t j = 0; j < maze.width; j++) {
             printf("%c ", maze.data[i][j]);
-        }
-        printf("\n");
-    }*/
-
-    bfs(maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, maze.data, maze.height, maze.width, predecessors);
-    
-    printf("turns Table:\n");
-    for (int8_t i = 0; i < maze.height; i++) {
-        for (int8_t j = 0; j < maze.width; j++) {
-            printf("%3d ", predecessors[i][j]);
         }
         printf("\n");
     }
 
-    print_path(maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, predecessors);
+    bfs(maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, maze.data, maze.height, maze.width, predecessors);
+    
+    char long_filename[260];
+    if (output_type == 1) {
+        snprintf(long_filename, sizeof(long_filename), "%s.txt", filename);  // Формирование имени файла с расширением .txt
+        print_path_to_file(long_filename, maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, predecessors);
+    } else if (output_type == 2) {
+        snprintf(long_filename, sizeof(long_filename), "%s.bin", filename);  // Формирование имени файла с расширением .bin
+        print_path_to_binary_file(long_filename, maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, predecessors);
+    } else if (output_type == 3) {
+        snprintf(long_filename, sizeof(long_filename), "%s.bin", filename);  // Формирование имени файла с расширением .bin
+        write_maze_to_binary_file(long_filename, maze.data, maze.height, maze.width);
+    } else {
+        // Вывод в консоль
+        print_path(maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, predecessors);
+    }
     // Освобождение памяти
     for (int i = 0; i < maze.height; i++) {
         free(maze.data[i]);
     }
     free(maze.data);
-
-    // mo?na doda?  znalezienie drogi przez labirynt
-
-    printf("Labirynt jest poprawny i gotowy do dalszych operacji.\n");
-
-    //free(input_filename);
-    //free(output_filename);
 
     return EXIT_SUCCESS;
 }

@@ -24,15 +24,15 @@ const char* get_turn_name(int8_t last_dir, int8_t new_dir) {
     int8_t diff = (new_dir - last_dir + 4) % 4; // Обеспечиваем цикличность направлений
     switch (diff) {
         case 0:
-            return "CONTINUE STRAIGHT";
+            return "CONTINUE STRAIGHT\n";
         case 1:
-            return "TURN RIGHT";
+            return "TURN RIGHT\n";
         case 2:
-            return "TURN AROUND";
+            return "TURN AROUND\n";
         case 3:
-            return "TURN LEFT";
+            return "TURN LEFT\n";
         default:
-            return "UNKNOWN TURN";
+            return "UNKNOWN TURN\n";
     }
 }
 
@@ -98,7 +98,7 @@ void print_path(uint16_t start_x, uint16_t start_y, uint16_t exit_x, uint16_t ex
             // Направление изменилось, выводим пройденное расстояние и описание поворота
             if (steps > 0) {
                 printf("FORWARD %d \n", steps);
-                printf("%s\n", get_turn_name(last_dir, pred));
+                printf("%s", get_turn_name(last_dir, pred));
             }
             // Сброс счетчика шагов
             steps = 1; // начинаем отсчет заново, так как мы уже сделали шаг в новом направлении
