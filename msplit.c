@@ -75,9 +75,9 @@ void parse_maze(const char *file_path, Position *posP, Position *posK, int *rows
     *cols = line_length;
     *num_chunks = file_count;
     // Print total lines, line length, and coordinates of 'P' and 'K'
-    printf("Общее количество чанков: %d\n", *num_chunks);
-    printf("Общее количество строк: %d\n", *rows);
-    printf("Длина строки: %d\n", *cols);
-    printf("Координаты 'P': (%d, %d)\n", posP->x, posP->y);
-    printf("Координаты 'K': (%d, %d)\n", posK->x, posK->y);
+    printf("Całkowita liczba fragmentów: %d\n", *num_chunks);
+    printf("Całkowita liczba linii: %d\n", *rows);
+    printf("Długość linii: %d\n", *cols);
+    printf("Współrzędne 'P': (%d, %d)\n", posP->x, posP->y);
+    printf("Współrzędne 'K': (%d, %d)\n", posK->x, posK->y);
 }
