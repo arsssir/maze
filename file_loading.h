@@ -1,14 +1,13 @@
 #ifndef FILE_LOADING_H
 #define FILE_LOADING_H
 
-#define MAX_SIZE 1030
-
 #include <stdbool.h> //true and false
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> //dla getopta
 #include <stdint.h>
+#include "mconfig.h"
 
 void print_usage();
 

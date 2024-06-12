@@ -1,101 +1,99 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "file_loading.h" 
-#include "bfs.h"
-#include "read.h"
-#include "wyjscie.h"
+#include <string.h>
 
-int8_t** allocate_2D_array_int8(uint16_t rows, uint16_t cols) {
-    int8_t** array = malloc(rows * sizeof(int8_t*));
-    for (uint16_t i = 0; i < rows; i++) {
-        array[i] = malloc(cols * sizeof(int8_t));
+#include "file_loading.h" 
+#include "mdir.h"
+#include "msplit.h"
+#include "mbfs.h"
+#include "mwyjscie.h"
+#include "mconfig.h"
+#include "msplitbin.h"
+
+void print_from_offset(FILE *file, int offset){
+    fseek(file, offset, SEEK_SET);
+    char ch;
+    while ((ch = fgetc(file)) != EOF) {
+        printf("%c", ch);
     }
-    return array;
 }
 
 int main(int argc, char *argv[]) {
+    const char *dir_name = "chunks";
+    const char *tmp_name = "tmp";
+    const char *res_name = "results";
+
+    if_dir(dir_name);
+    if_dir(tmp_name);
+    if_dir(res_name);
+
     char *input_filename_txt = NULL;
     char *input_filename_bin = NULL;
     char *output_filename = NULL;
-    //FILE *output_file = fopen("maze.txt", "w");
-    //FILE *output_f = fopen("da.txt", "w");
 
-    
     int output_type = 0;
     process_input(argc, argv, &input_filename_bin, &input_filename_txt, &output_filename);
     
     char filename[256];
-
-    if (!output_filename) {
-        output_type = 0;
-    } else {
-        strcpy(filename, output_filename);
-        printf("Enter output type (1 for text file, 2 for binary file, 3 for maze in bin file): ");
-        scanf("%d", &output_type);
-    }
 
     if (input_filename_txt && input_filename_bin) {
         printf("Otwarte dwa pliki. Proszę otworzyć tylko jeden.\n");
         exit(EXIT_FAILURE);
     }
 
-    Maze maze;
+    //const char* input_filename = argv[1];  // замените на путь к вашему файлу
+    //int chunk_size = 15;  // например, разделяем на чанки по 10 строк
+    Position posP, posK;
+    int rows, cols, num_chunks;
+    //split_maze_into_files(file_path, &posP, &posK);
+
     if (input_filename_txt) {
-        maze = read_maze_from_file(input_filename_txt);
+        parse_maze(input_filename_txt, &posP, &posK, &rows, &cols, &num_chunks);
     } else if (input_filename_bin) {
-        maze = read_maze_from_binary_file(input_filename_bin);
+        MazeHeader inf;
+        inf = read_bin_file(input_filename_bin);
+        parse_maze("tmp/bin_to_txt.txt", &posP, &posK, &rows, &cols, &num_chunks);
     } else {
         fprintf(stderr, "Nie podano pliku labiryntu.\n");
         exit(EXIT_FAILURE);
     }
 
-    int8_t **predecessors = allocate_2D_array_int8(maze.height, maze.width);
-    if (!predecessors) {
-        fprintf(stderr, "Nie udało się zaalokować pamięci dla poprzedników.\n");
-        return EXIT_FAILURE;
+    bfs(rows, cols, posK.x, posK.y, LINES_PER_FILE, num_chunks);
+
+    int steps;
+    FILE *input_file = fopen("tmp/steps_count.txt", "r");
+    if (input_file == NULL) {
+        perror("Error");
+        exit(EXIT_FAILURE);
     }
+    fscanf(input_file, "%d", &steps);
 
-    printf("Wymiary labiryntu: %dx%d\n", maze.height, maze.width);
-    printf("Pozycja startowa: (%c)\n", maze.data[maze.start.x][maze.start.y]);
-    printf("Pozycja końcowa: (%c)\n", maze.data[maze.finish.x][maze.finish.y]);
-
-    bfs(maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, maze.data, maze.height, maze.width, predecessors);
-    
-    /*for (uint16_t i = 0; i < maze.height; i++) {
-        for (uint16_t j = 0; j < maze.width; j++) {
-            fprintf(output_f, "%c ", maze.data[i][j]);
-        }
-        fprintf(output_f, "\n");
+    //txt_compress("tmp/steps.txt", steps, "tmp/final_output.txt");
+    if (!output_filename) {
+        output_type = 0;
+    } else {
+        strcpy(filename, output_filename);
+        printf("Enter output type (1 for text file, 2 for binary file): ");
+        scanf("%d", &output_type);
     }
-
-    printf("maze:\n");
-    for (uint16_t i = 0; i < maze.height; i++) {
-        for (uint16_t j = 0; j < maze.width; j++) {
-            fprintf(output_file, "%d ", predecessors[i][j]);
-        }
-        fprintf(output_file, "\n");
-    }*/
-    
-    char long_filename[260];
+    char long_filename[270];
     if (output_type == 1) {
-        snprintf(long_filename, sizeof(long_filename), "%s.txt", filename);  // Формирование имени файла с расширением .txt
-        print_path_to_file(long_filename, maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, predecessors);
+        snprintf(long_filename, sizeof(long_filename), "results/%s.txt", filename);
+        FILE *final_out = fopen(long_filename, "w");  // Формирование имени файла с расширением .txt
+        txt_compress("tmp/steps.txt", steps, final_out);
+        fclose(final_out);
     } else if (output_type == 2) {
-        snprintf(long_filename, sizeof(long_filename), "%s.bin", filename);  // Формирование имени файла с расширением .bin
-        print_path_to_binary_file(long_filename, maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, predecessors);
-    } else if (output_type == 3) {
-        snprintf(long_filename, sizeof(long_filename), "%s.bin", filename);  // Формирование имени файла с расширением .bin
-        write_maze_to_binary_file(long_filename, maze.data, maze.height, maze.width);
+        snprintf(long_filename, sizeof(long_filename), "results/%s.bin", filename);
+        FILE *final_out_bin = fopen(long_filename, "wb");  // Формирование имени файла с расширением .bin
+        txt_compress("tmp/steps.txt", steps, final_out_bin);
+        fclose(final_out_bin);
     } else {
         // Вывод в консоль
-        print_path(maze.start.x, maze.start.y, maze.finish.x, maze.finish.y, predecessors);
+        txt_compress("tmp/steps.txt", steps, stdout);
     }
 
-    for (int i = 0; i < maze.height; i++) {
-        free(maze.data[i]);
-    }
-    free(maze.data);
-    free(predecessors);
+        /*if (output_filename == NULL) {
+            print_file_to_console("tmp/final_output.txt");
+    }*/
 
-    return EXIT_SUCCESS;
+    fclose(input_file);
+    return 0;
 }

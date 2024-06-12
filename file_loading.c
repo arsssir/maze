@@ -134,48 +134,47 @@ bool is_valid_binary_maze(const char *filename) {
         return false;
     }
 
-    uint16_t height, width;
-    fread(&height, sizeof(uint16_t), 1, file);
-    fread(&width, sizeof(uint16_t), 1, file);
+    MazeHeader header;
 
-    uint8_t entry_count = 0, exit_count = 0;
+    fread(&header.fileID, sizeof(int32_t), 1, file);
+    fread(&header.esc, sizeof(int8_t), 1, file);
+    fread(&header.col, sizeof(int16_t), 1, file);
+    fread(&header.row, sizeof(int16_t), 1, file);
+    fread(&header.Prow, sizeof(int16_t), 1, file);
+    fread(&header.Pcol, sizeof(int16_t), 1, file);
+    fread(&header.Krow, sizeof(int16_t), 1, file);
+    fread(&header.Kcol, sizeof(int16_t), 1, file);
+    fseek(file, 12, SEEK_CUR);
+    fread(&header.counter, sizeof(int32_t), 1, file);
+    fread(&header.solution_offset, sizeof(int32_t), 1, file);
+    fread(&header.separator, sizeof(char), 1, file);
+    fread(&header.wall, sizeof(char), 1, file);
+    fread(&header.path, sizeof(char), 1, file);
 
-    char *line = malloc(width + 1); // +1 for the null terminator
-    if (!line) {
-        fprintf(stderr, "Memory allocation failed\n");
+    // Validate the header data
+    if (header.esc != 0x1B) {
+        fprintf(stderr, "Invalid escape character in the header.\n");
         fclose(file);
         return false;
     }
 
-    for (uint16_t i = 0; i < height; i++) {
-        if (fread(line, sizeof(char), width, file) != width) {
-            fprintf(stderr, "Failed to read a line from file: %s\n", filename);
-            free(line);
-            fclose(file);
-            return false;
-        }
-        line[width] = '\0'; // Null-terminate the string
-
-        for (uint16_t j = 0; j < width; j++) {
-            char c = line[j];
-            if (c != 'X' && c != ' ' && c != 'P' && c != 'K') {
-                fprintf(stderr, "Error. Invalid character '%c' in maze file on line %u.\n", c, i + 1);
-                free(line);
-                fclose(file);
-                return false;
-            }
-            if (c == 'P') entry_count++;
-            if (c == 'K') exit_count++;
-        }
-    }
-
-    free(line);
-    fclose(file);
-
-    if (entry_count != 1 || exit_count != 1) {
-        fprintf(stderr, "Error. Incorrect number of entry (%d) or exit (%d) points in binary maze file.\n", entry_count, exit_count);
+    // Validate separator, wall, and path characters
+    if (header.separator > 0xF0 || (header.wall != 'X' && header.path != ' ')) {
+        fprintf(stderr, "Invalid separator, wall, or path characters in the header.\n");
+        fclose(file);
         return false;
     }
 
+    // Ensure that the entry and exit points are within the bounds of the maze
+    if (header.Prow < 1 || header.Prow > header.col ||
+        header.Pcol < 1 || header.Pcol > header.row ||
+        header.Krow < 1 || header.Krow > header.col ||
+        header.Kcol < 1 || header.Kcol > header.row) {
+        fprintf(stderr, "Entry or exit points are out of bounds.\n");
+        fclose(file);
+        return false;
+    }
+
+    fclose(file);
     return true;
 }

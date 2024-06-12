@@ -1,45 +1,49 @@
-# Определение компилятора
-CC=gcc
 
-# Определение флагов компилятора
+CC=cc
+
+
 CFLAGS=-Wall -g
 
-# Исполняемый файл, который мы хотим создать
+
 TARGET=program
 
-# Список объектных файлов
-OBJS=main.o bfs.o read.o wyjscie.o file_loading.o
 
-# Правило по умолчанию
+OBJS=main.o mbfs.o mdir.o msplit.o msplitbin.o mwyjscie.o file_loading.o
+
+
 all: $(TARGET)
 
-# Как собрать исполняемый файл
+
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
 
-# Зависимости для объектных файлов
-main.o: main.c read.h bfs.h wyjscie.h file_loading.h
+
+main.o: main.c file_loading.h mdir.h msplit.h mbfs.h mwyjscie.h mconfig.h msplitbin.h
 	$(CC) $(CFLAGS) -c main.c
 
-bfs.o: bfs.c bfs.h
-	$(CC) $(CFLAGS) -c bfs.c
+mbfs.o: mbfs.c mbfs.h
+	$(CC) $(CFLAGS) -c mbfs.c
 
-read.o: read.c read.h
-	$(CC) $(CFLAGS) -c read.c
+mdir.o: mdir.c mdir.h
+	$(CC) $(CFLAGS) -c mdir.c
 
-wyjscie.o: wyjscie.c wyjscie.h bfs.h
-	$(CC) $(CFLAGS) -c wyjscie.c
+msplit.o: msplit.c msplit.h
+	$(CC) $(CFLAGS) -c msplit.c
+
+msplitbin.o: msplitbin.c msplitbin.h
+	$(CC) $(CFLAGS) -c msplitbin.c
+
+mwyjscie.o: mwyjscie.c mwyjscie.h
+	$(CC) $(CFLAGS) -c mwyjscie.c
 
 file_loading.o: file_loading.c file_loading.h
 	$(CC) $(CFLAGS) -c file_loading.c
-# Правило для очистки проекта
+
 clean:
 	rm -f $(TARGET) $(OBJS)
 
-# Правило для запуска программы с параметрами
 run: $(TARGET)
 	./$(TARGET) -f input_filename.txt -b input_filename.bin -o output_filename
 
-# Альтернативное правило для запуска с возможностью передавать параметры
 run_custom:
 	./$(TARGET) $(ARGS)
